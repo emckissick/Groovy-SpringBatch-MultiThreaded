@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.1.xsd">
+
+	<import resource="../batch-infrastructure-test.xml" />
+
+	<batch:job id="testMultiThreadedJob">
+		<batch:step id="readWriteMultiThreadedStep">
+			<batch:tasklet task-executor="taskExecutor" >
+				<batch:chunk reader="synchedAccountReader" processor="processor" writer="writer" commit-interval="10" />
+			</batch:tasklet>
+		</batch:step>
+	</batch:job>
+	
+	<bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<property name="corePoolSize" value="5" />
+		<property name="maxPoolSize" value="5" />
+	</bean>
+	
+	
+	<bean id="synchedAccountReader" class="com.example.reader.SynchronizingItemReader">
+     <property name="delegate" ref="accountReader"/>
+     </bean>
+	
+
+	<bean id="processor" class="com.example.processor.SummaryProcessor" scope="step">
+	</bean>
+
+<bean id="accountReader" class="org.springframework.batch.item.database.JdbcCursorItemReader" scope="step">
+    <property name="dataSource" ref="emDataSource"/>
+    <property name="sql" 
+       value="select idProduct from spring_batch.product" />        
+    <property name="rowMapper">
+	   <bean class="org.springframework.jdbc.core.SingleColumnRowMapper">
+	       	<constructor-arg value="java.lang.Long" />
+	   </bean>
+     </property>
+</bean>
+
+	<bean id="writer" class="com.example.writer.SummaryItemWriter" scope="step"/>
+
+</beans>
